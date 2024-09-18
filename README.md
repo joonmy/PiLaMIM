@@ -2,6 +2,7 @@
 
 ## Setting
 conda create -n name python=3.8
+
 pip install -r requirements.txt
 
 ## Pretrain
@@ -15,4 +16,5 @@ python linear_probing.py --dataset data_name --pretrained_model_path model_path
 ```
 
 All datasets were utilized with torchvision
+
 data_name : imagenet1k, cifar100, cifar10, Places365, INat2021, CLEVR, CLEVR_Dist
