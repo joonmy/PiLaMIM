@@ -49,13 +49,25 @@ def main(rank, world_size, args):
     args.patch_size = 16
     args.image_size = 224
     if args.dataset == 'cifar10':
-        train_dataset = torchvision.datasets.CIFAR10('./data', train=True, download=True, transform=transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(), transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])]))
-        val_dataset = torchvision.datasets.CIFAR10('./data', train=False, download=True, transform=transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(), transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])]))
+        transform = transforms.Compose([
+            transforms.Resize((224, 224)), 
+            transforms.ToTensor(), 
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+        
+        train_dataset = torchvision.datasets.CIFAR10('./data', train=True, download=True, transform=transform)
+        val_dataset = torchvision.datasets.CIFAR10('./data', train=False, download=True, transform=transform)
         num_classes = 10
+
     elif args.dataset == 'cifar100':
-        train_dataset = torchvision.datasets.CIFAR100('./data', train=True, download=True, transform=transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(), transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])]))
-        val_dataset = torchvision.datasets.CIFAR100('./data', train=False, download=True, transform=transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(), transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])]))
+        transform = transforms.Compose([
+            transforms.Resize((224, 224)), 
+            transforms.ToTensor(), 
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+        
+        train_dataset = torchvision.datasets.CIFAR100('./data', train=True, download=True, transform=transform)
+        val_dataset = torchvision.datasets.CIFAR100('./data', train=False, download=True, transform=transform)
         num_classes = 100
+
     elif args.dataset == 'imagenet1k':
         transform_train = transforms.Compose([
             transforms.RandomResizedCrop(224, scale=(0.2, 1.0), interpolation=3), 
@@ -67,9 +79,11 @@ def main(rank, world_size, args):
             transforms.CenterCrop(224),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+        
         train_dataset = torchvision.datasets.ImageNet(root='./data', split='train', transform=transform_train)
         val_dataset = torchvision.datasets.ImageNet(root='./data', split='val', transform=transform_val)
         num_classes = 1000
+
     elif args.dataset == 'Places365':
         transform_train = transforms.Compose([
             transforms.RandomResizedCrop(224, scale=(0.2, 1.0), interpolation=3),  # 3 is bicubic
@@ -81,12 +95,14 @@ def main(rank, world_size, args):
             transforms.CenterCrop(224),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+        
         train_dataset = torchvision.datasets.Places365(root='./data', split='train-standard', small = True, download = True, transform=transform_train)
         val_dataset = torchvision.datasets.Places365(root='./data', split='val', small = True, download = True, transform=transform_val)
         num_classes = 365
+
     elif args.dataset == 'INat2021':
         transform_train = transforms.Compose([
-            transforms.RandomResizedCrop(224, scale=(0.2, 1.0), interpolation=3),  # 3 is bicubic
+            transforms.RandomResizedCrop(224, scale=(0.2, 1.0), interpolation=3), 
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
@@ -95,9 +111,11 @@ def main(rank, world_size, args):
             transforms.CenterCrop(224),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+        
         train_dataset = torchvision.datasets.INaturalist(root='./data', version='2021_train_mini', download=True, transform=transform_train)
         val_dataset = torchvision.datasets.INaturalist(root='./data', version='2021_valid', download=True, transform=transform_val)
         num_classes = 10000
+
     elif args.dataset == 'CLEVR':
         transform_train = transforms.Compose([
             transforms.Resize((224, 224)),
@@ -108,9 +126,11 @@ def main(rank, world_size, args):
             transforms.Resize((224, 224)),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+        
         train_dataset = torchvision.datasets.CLEVRClassification(root='./data', split='train', download=True,  transform=transform_train, target_transform=None)
         val_dataset = torchvision.datasets.CLEVRClassification(root='./data', split='val', download=True,  transform=transform_val, target_transform=None)
-        num_classes = 8 # label : min 3 max 10,  so, label = label - 3  (0 == 3, 7 == 10)
+        num_classes = 8 # label : min 3 max 10,  so, label = label - 3  (0 ~ 7)
+
     elif args.dataset == 'CLEVR_Dist':
         transform_train = transforms.Compose([
             transforms.Resize((224, 224)),
@@ -121,6 +141,7 @@ def main(rank, world_size, args):
             transforms.Resize((224, 224)),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+        
         train_dataset = torchvision.datasets.CLEVRClassification(root='./data', split='train', download=True, dist = True,  transform=transform_train, target_transform=None)
         val_dataset = torchvision.datasets.CLEVRClassification(root='./data', split='val', download=True,  dist = True, transform=transform_val, target_transform=None)
         num_classes = 6 
