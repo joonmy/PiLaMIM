@@ -144,7 +144,7 @@ def main(rank, world_size, args):
             losses_cls.append(loss_cls.item())
             
             model.module.update_target(next(momentum_scheduler)) ## target update by EMA
-            break
+
         lr_scheduler.step()
         if rank == 0:
             avg_loss = sum(losses) / len(losses)

@@ -30,13 +30,12 @@ def ddp_setup(rank, world_size):
 def main(rank, world_size, args):
     ddp_setup(rank, world_size)
 
-    if rank == 0:
+    save_path = "./linear_probing_checkpoint/" 
+
+    if not args.eval and rank == 0:
         wandb.init(project='linear_probing', name=args.dataset)
         wandb.config.update(args)
 
-    save_path = "./linear_probing_checkpoint/" 
-
-    if rank == 0:
         os.makedirs(save_path, exist_ok=True)
 
     setup_seed(args.seed)
@@ -200,58 +199,60 @@ def main(rank, world_size, args):
         print("len of train dataloader: ", len(train_loader))
         print("len of valid dataloader: ", len(valid_loader))
     
-    scaler = GradScaler()
     
-    best_val_acc = 0
-    step_count = 0
+    if not args.eval:
+        scaler = GradScaler()
+        
+        best_val_acc = 0
+        step_count = 0
 
-    optim.zero_grad()
-    for e in range(args.total_epoch):
-        model.train()
-        train_sampler.set_epoch(e)
-        losses = []
-        acces = []
-        for img, label in tqdm(iter(train_loader)):
-            step_count += 1
-            img = img.to(rank)
-            label = label.to(rank)
+        optim.zero_grad()
+        for e in range(args.total_epoch):
+            model.train()
+            train_sampler.set_epoch(e)
+            losses = []
+            acces = []
+            for img, label in tqdm(iter(train_loader)):
+                step_count += 1
+                img = img.to(rank)
+                label = label.to(rank)
 
-            if args.dataset == 'CLEVR':
-                label = label - 3
+                if args.dataset == 'CLEVR':
+                    label = label - 3
 
-            optim.zero_grad()
-            with autocast():
-                logits = model(img)
-                loss = loss_fn(logits, label)
+                optim.zero_grad()
+                with autocast():
+                    logits = model(img)
+                    loss = loss_fn(logits, label)
 
-            scaler.scale(loss).backward()
+                scaler.scale(loss).backward()
 
-            if step_count % steps_per_update == 0:
-                if rank == 0:
-                    print(f'In epoch {e}, step {step_count}, loss is {loss.item()}')
-                    wandb.log({"loss_iter": loss.item()}, step=step_count)
-                scaler.step(optim)
-                scaler.update()
+                if step_count % steps_per_update == 0:
+                    if rank == 0:
+                        print(f'In epoch {e}, step {step_count}, loss is {loss.item()}')
+                        wandb.log({"loss_iter": loss.item()}, step=step_count)
+                    scaler.step(optim)
+                    scaler.update()
 
-            acc = acc_fn(logits, label)
+                acc = acc_fn(logits, label)
 
-            loss = loss.detach()
-            acc = acc.detach()
-            dist.all_reduce(loss, op=dist.ReduceOp.SUM)
-            dist.all_reduce(acc, op=dist.ReduceOp.SUM) 
-            loss = loss / world_size
-            acc = acc / world_size
-    
-            losses.append(loss.item())
-            acces.append(acc.item())
+                loss = loss.detach()
+                acc = acc.detach()
+                dist.all_reduce(loss, op=dist.ReduceOp.SUM)
+                dist.all_reduce(acc, op=dist.ReduceOp.SUM) 
+                loss = loss / world_size
+                acc = acc / world_size
+        
+                losses.append(loss.item())
+                acces.append(acc.item())
 
-        lr_scheduler.step()
-        if rank == 0:
-            avg_train_loss = sum(losses) / len(losses)
-            avg_train_acc = sum(acces) / len(acces)
-            
-            wandb.log({"train_loss": avg_train_loss, "train_acc": avg_train_acc, "learning_rate": lr_scheduler.get_last_lr()[0]}, step=step_count)
-            print(f'In epoch {e}, average training loss is {avg_train_loss}, average training acc is {avg_train_acc}.')
+            lr_scheduler.step()
+            if rank == 0:
+                avg_train_loss = sum(losses) / len(losses)
+                avg_train_acc = sum(acces) / len(acces)
+                
+                wandb.log({"train_loss": avg_train_loss, "train_acc": avg_train_acc, "learning_rate": lr_scheduler.get_last_lr()[0]}, step=step_count)
+                print(f'In epoch {e}, average training loss is {avg_train_loss}, average training acc is {avg_train_acc}.')
 
         model.eval()
         with torch.no_grad():
@@ -306,6 +307,7 @@ if __name__ == '__main__':
     parser.add_argument('--pretrained_model_path', type=str, default=None)
     parser.add_argument('--output_model_path', type=str, default='')
     parser.add_argument('--dataset', type=str, default='imagenet1k')
+    parser.add_argument('--eval', action='store_true')
 
     args = parser.parse_args()
     world_size = torch.cuda.device_count()
