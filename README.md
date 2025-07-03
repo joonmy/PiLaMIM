@@ -20,4 +20,4 @@ All datasets were utilized with torchvision
 data_name : imagenet1k, cifar100, cifar10, Places365, INat2021, CLEVR, CLEVR_Dist
 
 ## Imagenet-1k linear probing checkpoint
-https://drive.google.com/drive/folders/1KCPFP8tLvz7vf_2qRlPcCamRIYqOtziI?usp=sharing
+[https://drive.google.com/drive/folders/1KCPFP8tLvz7vf_2qRlPcCamRIYqOtziI?usp=sharing](https://drive.google.com/drive/folders/1OFylOQfA1FQHys5d8n7ujeV4WR4Zhi3K?usp=drive_link)
